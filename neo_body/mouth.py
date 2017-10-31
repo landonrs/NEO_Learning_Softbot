@@ -8,12 +8,10 @@ class Mouth(Agent):
         """default constructor"""
         super(Mouth, self).__init__("mouth")
 
-    def list_categories(self):
-        print("I currently know about the following attributes: ")
-        for color in self.ask("memory", "colors"):
-            print(str(color) + " ")
-        for weight_type in self.ask("memory", "weights"):
-            print(str(weight_type) + " ")
+    def list_similar_objects(self):
+        object_list = self.ask("brain", "list_of_objects")
+        for object in object_list:
+            print(object[0])
 
     def report_visible_objects(self):
         visible_obj = self.ask("eyes", "num_vis_obj")
@@ -21,4 +19,8 @@ class Mouth(Agent):
             print("I can see " + str(visible_obj) + " objects")
         else:
             print("I can see " + str(visible_obj) + " object")
+
+    def state_current_position(self):
+        position = self.ask("brain", "position")
+        print("My current position is " + str(position))
 

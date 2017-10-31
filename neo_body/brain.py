@@ -3,8 +3,8 @@ from neo_body.eyes import Eyes
 from neo_body.hands import Hands
 from neo_body.memory import Memory
 from neo_body.mouth import Mouth
+from neo_body.legs import Legs
 from enum import Enum
-
 
 
 class brain(Agent):
@@ -17,29 +17,55 @@ class brain(Agent):
         self.facing_direction = "RIGHT"
         self.finished = False
         self.position = 100
+        self.sql_statement = None
+        self.list_of_objects = None
+        self.current_object_name = None
+        self.uninspected_objects = []
         self.eyes = Eyes()
         self.hands = Hands()
         self.memory = Memory()
         self.mouth = Mouth()
+        self.legs = Legs()
+
+
+    def determine_object_name(self):
+        self.current_object_name = self.uninspected_objects[0].name
+        self.uninspected_objects.pop(0)
+
+    def find_objects(self, query):
+        self.sql_statement = "SELECT OBJECT_NAME FROM OBJECTS WHERE OBJECT_COLOR = '" + query + "';"
+        self.memory.recall_objects()
+        self.list_of_objects = self.ask("memory", "short_term_memory")
+        self.mouth.list_similar_objects()
 
     def scan_room(self):
         self.eyes.scan_area()
         self.mouth.report_visible_objects()
-        self.finished = True
-
-    def report_understanding(self):
-        self.mouth.list_categories()
 
     def run_learning_program(self):
         if self.CURRENT_STATE == BEHAVIOR_STATE.SCANNING:
             self.scan_room()
-            self.report_understanding()
+            self.uninspected_objects = self.ask("eyes", "visible_object_list")
+            self.CURRENT_STATE = BEHAVIOR_STATE.APPROACHING
         elif self.CURRENT_STATE == BEHAVIOR_STATE.APPROACHING:
-            pass
+            while self.position != self.uninspected_objects[0].position:
+                self.legs.walk()
+                self.position = self.ask("legs", "position")
+                self.mouth.state_current_position()
+            self.CURRENT_STATE = BEHAVIOR_STATE.INSPECTING
         elif self.CURRENT_STATE == BEHAVIOR_STATE.INSPECTING:
-            pass
+            self.hands.pick_up_object()
+            self.eyes.look_at_object()
+            self.determine_object_name()
+            self.memory.memorize()
+
+            if self.uninspected_objects:
+                self.CURRENT_STATE = BEHAVIOR_STATE.APPROACHING
+            else:
+                self.finished = True
         else:
             self.CURRENT_STATE = BEHAVIOR_STATE.FINISHED
+            self.finished = True
 
 
 class BEHAVIOR_STATE(Enum):
